@@ -2,10 +2,10 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
-import connectDB from "./db/index.ts";
+import connectDB from "./db/index.js";
 
 // Routes
-import userRoutes from "./user/user.routes.ts";
+import userRoutes from "./user/user.routes.js";
 
 // Configure App
 dotenv.config({quiet: true});
