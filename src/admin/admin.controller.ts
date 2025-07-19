@@ -3,6 +3,7 @@ import { UserModel } from "../models/user.js";
 import mongoose from "mongoose";
 import { StatusCodes } from "http-status-codes";
 import { ClassScheduleModel } from "../models/classSchedule.js";
+import { getAdminSchedulePipeline } from "../db/pipelines.js";
 
 export const getUsers = async (
     req: Request,
@@ -239,53 +240,9 @@ export const getSchedules = async (
     next: NextFunction
 ) => {
     try {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const pipeline = [
-            {
-                $match: {
-                    startTime: { $gte: today },
-                },
-            },
-            {
-                $lookup: {
-                    from: "bookings",
-                    localField: "_id",
-                    foreignField: "schedule",
-                    as: "bookings",
-                },
-            },
-            {
-                $lookup: {
-                    from: "users",
-                    localField: "trainer",
-                    foreignField: "_id",
-                    as: "trainer",
-                },
-            },
-            {
-                $unwind: "$trainer",
-            },
-            {
-                $addFields: {
-                    bookedCount: { $size: "$bookings" },
-                    isFull: { $eq: [{ $size: "$bookings" }, 10] },
-                },
-            },
-            {
-                $project: {
-                    startTime: 1,
-                    endTime: 1,
-                    "trainer.name": 1,
-                    "trainer.email": 1,
-                    bookedCount: 1,
-                    isFull: 1,
-                },
-            },
-        ];
-
-        const schedules = await ClassScheduleModel.aggregate(pipeline);
+        const schedules = await ClassScheduleModel.aggregate(
+            getAdminSchedulePipeline()
+        );
 
         res.status(StatusCodes.OK).json({
             success: true,

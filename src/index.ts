@@ -62,5 +62,3 @@ connectDB().then(() => {
         );
     });
 });
-
-// TODO: add global error handler

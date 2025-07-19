@@ -5,6 +5,10 @@ import { genHash, genToken, hashMatched } from "../utils/index.js";
 import { ClassScheduleModel } from "../models/classSchedule.js";
 import mongoose from "mongoose";
 import { BookingModel } from "../models/booking.js";
+import {
+    getUserBookingsPipeline,
+    getUserSchedulePipeline,
+} from "../db/pipelines.js";
 
 export const cookieOptions = {
     httpOnly: true,
@@ -124,60 +128,9 @@ export const getSchedules = async (
     const userId = req.user?.id;
 
     try {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const pipeline = [
-            {
-                $match: {
-                    startTime: { $gte: today },
-                },
-            },
-            {
-                $lookup: {
-                    from: "bookings",
-                    localField: "_id",
-                    foreignField: "schedule",
-                    as: "bookings",
-                },
-            },
-            {
-                $lookup: {
-                    from: "users",
-                    localField: "trainer",
-                    foreignField: "_id",
-                    as: "trainer",
-                },
-            },
-            {
-                $unwind: "$trainer",
-            },
-            {
-                $addFields: {
-                    bookedCount: { $size: "$bookings" },
-                    isFull: { $eq: [{ $size: "$bookings" }, 10] },
-                    isBooked: {
-                        $in: [
-                            new mongoose.Types.ObjectId(userId),
-                            "$bookings.user",
-                        ],
-                    },
-                },
-            },
-            {
-                $project: {
-                    startTime: 1,
-                    endTime: 1,
-                    "trainer.name": 1,
-                    "trainer.email": 1,
-                    bookedCount: 1,
-                    isFull: 1,
-                    isBooked: 1,
-                },
-            },
-        ];
-
-        const schedules = await ClassScheduleModel.aggregate(pipeline);
+        const schedules = await ClassScheduleModel.aggregate(
+            getUserSchedulePipeline(userId!)
+        );
 
         res.status(StatusCodes.OK).json({
             success: true,
@@ -271,58 +224,9 @@ export const getBookings = async (
     const userId = req.user?.id;
 
     try {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const pipeline = [
-            {
-                $match: {
-                    user: new mongoose.Types.ObjectId(userId),
-                },
-            },
-            {
-                $lookup: {
-                    from: "classschedules",
-                    localField: "schedule",
-                    foreignField: "_id",
-                    as: "scheduleInfo",
-                },
-            },
-            {
-                $unwind: "$scheduleInfo",
-            },
-            {
-                $match: {
-                    "scheduleInfo.startTime": {
-                        $gte: today,
-                    },
-                },
-            },
-            {
-                $lookup: {
-                    from: "users",
-                    localField: "scheduleInfo.trainer",
-                    foreignField: "_id",
-                    as: "trainerInfo",
-                },
-            },
-            { $unwind: "$trainerInfo" },
-            {
-                $project: {
-                    schedule: 1,
-                    scheduleInfo: {
-                        startTime: 1,
-                        endTime: 1,
-                    },
-                    trainer: {
-                        name: "$trainerInfo.name",
-                        email: "$trainerInfo.email",
-                    },
-                },
-            },
-        ];
-
-        const schedules = await BookingModel.aggregate(pipeline);
+        const schedules = await BookingModel.aggregate(
+            getUserBookingsPipeline(userId!)
+        );
 
         res.status(StatusCodes.OK).json({
             success: true,
