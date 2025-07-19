@@ -14,6 +14,7 @@ app.use(cookieParser());
 // Injecting Routes
 app.use("/api/users", userRoutes);
 // Connect Database and Start App
+console.log("Starting...");
 connectDB().then(() => {
     app.listen(process.env.PORT || 5000, () => {
         console.log(`Server running...`);

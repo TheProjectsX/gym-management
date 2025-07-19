@@ -4,7 +4,8 @@
     "description": "",
     "main": "dist/index.js",
     "scripts": {
-        "dev": "nodemon dist/index.js & tsc --watch"
+        "build": "tsc",
+        "dev": "nodemon"
     },
     "keywords": [],
     "author": "",

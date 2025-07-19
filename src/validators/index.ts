@@ -1,13 +1,20 @@
-import { z } from "zod";
+import { email, z, type ZodObject } from "zod";
 
-const userSchema = z.object({
+// Schema
+const registerSchema = z.object({
     name: z.string().min(6),
     email: z.email(),
     password: z.minLength(6),
 });
 
-export const validateUser = (data: unknown) => {
-    const result = userSchema.safeParse(data);
+const loginSchema = z.object({
+    email: z.email(),
+    password: z.minLength(6),
+});
+
+const validateSchema = (schema: ZodObject, data: unknown) => {
+    const result = schema.safeParse(data);
+
     if (!result.success) {
         const error = result.error!.issues[0];
 
@@ -21,4 +28,13 @@ export const validateUser = (data: unknown) => {
         };
     }
     return { success: true, data: result.data };
+};
+
+// Validators
+export const validateRegister = (data: unknown) => {
+    return validateSchema(registerSchema, data);
+};
+
+export const validateLogin = (data: unknown) => {
+    return validateSchema(loginSchema, data);
 };
