@@ -38,13 +38,14 @@ export const registerUser = async (req: Request, res: Response) => {
             .status(StatusCodes.CREATED)
             .json({
                 success: true,
+                statusCode: StatusCodes.CREATED,
                 message: "Registration Successful!",
                 ...userData,
             });
     } catch (error) {
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             success: false,
-            message: "Internal Server Error",
+            message: "Failed to Create Account",
             error: error instanceof Error ? error.message : String(error),
         });
     }
@@ -77,23 +78,26 @@ export const loginUser = async (req: Request, res: Response) => {
         });
 
         res.cookie("access_token", token, cookieOptions)
-            .status(StatusCodes.CREATED)
+            .status(StatusCodes.OK)
             .json({
                 success: true,
+                statusCode: StatusCodes.OK,
                 message: "Login Successful!",
                 ...userData,
             });
     } catch (error) {
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             success: false,
-            message: "Internal Server Error",
+            message: "Failed to Login",
             error: error instanceof Error ? error.message : String(error),
         });
     }
 };
 
 export const logoutUser = async (req: Request, res: Response) => {
-    res.clearCookie("access_token", cookieOptions)
-        .status(StatusCodes.OK)
-        .json({ success: true, message: "Logout Successful" });
+    res.clearCookie("access_token", cookieOptions).status(StatusCodes.OK).json({
+        success: true,
+        statusCode: StatusCodes.OK,
+        message: "Logout Successful",
+    });
 };

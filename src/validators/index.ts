@@ -1,4 +1,4 @@
-import { email, z, type ZodObject } from "zod";
+import { z, type ZodObject } from "zod";
 
 // Schema
 const registerSchema = z.object({
@@ -12,6 +12,12 @@ const loginSchema = z.object({
     password: z.minLength(6),
 });
 
+const newScheduleSchema = z.object({
+    startTime: z.iso.datetime(),
+    trainerId: z.string(),
+});
+
+// Actual Validator
 const validateSchema = (schema: ZodObject, data: unknown) => {
     const result = schema.safeParse(data);
 
@@ -30,11 +36,15 @@ const validateSchema = (schema: ZodObject, data: unknown) => {
     return { success: true, data: result.data };
 };
 
-// Validators
+// Validator Instances
 export const validateRegister = (data: unknown) => {
     return validateSchema(registerSchema, data);
 };
 
 export const validateLogin = (data: unknown) => {
     return validateSchema(loginSchema, data);
+};
+
+export const validateSchedule = (data: unknown) => {
+    return validateSchema(newScheduleSchema, data);
 };

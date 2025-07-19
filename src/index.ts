@@ -6,9 +6,10 @@ import connectDB from "./db/index.js";
 
 // Routes
 import userRoutes from "./user/user.routes.js";
+import adminRoutes from "./admin/admin.routes.js";
 
 // Configure App
-dotenv.config({quiet: true});
+dotenv.config({ quiet: true });
 
 const app = express();
 
@@ -19,8 +20,10 @@ app.use(cookieParser());
 // Injecting Routes
 app.use("/api/users", userRoutes);
 
+app.use("/api/admin", adminRoutes);
+
 // Connect Database and Start App
-console.log("Starting...")
+console.log("Starting...");
 connectDB().then(() => {
     app.listen(process.env.PORT || 5000, () => {
         console.log(`Server running...`);

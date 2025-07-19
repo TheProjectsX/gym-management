@@ -1,5 +1,9 @@
 import type { NextFunction, Request, Response } from "express";
-import { validateLogin, validateRegister } from "../validators/index.js";
+import {
+    validateLogin,
+    validateRegister,
+    validateSchedule,
+} from "../validators/index.js";
 import { StatusCodes } from "http-status-codes";
 
 export const validateUserRegister = (
@@ -30,6 +34,21 @@ export const validateUserLogin = (
             success: false,
             message: "Invalid Credentials",
         });
+    } else {
+        next();
+    }
+};
+
+export const validateNewSchedule = (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    const body = req.body;
+    const validation = validateSchedule(body);
+
+    if (!validation.success) {
+        res.status(StatusCodes.BAD_REQUEST).json(validation);
     } else {
         next();
     }
