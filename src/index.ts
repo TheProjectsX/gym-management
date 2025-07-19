@@ -7,6 +7,12 @@ import connectDB from "./db/index.js";
 // Routes
 import userRoutes from "./user/user.routes.js";
 import adminRoutes from "./admin/admin.routes.js";
+import trainerRoutes from "./trainer/trainer.routes.js";
+import {
+    checkAdminAuthorization,
+    checkTrainerAuthorization,
+    checkUserAuthentication,
+} from "./middlewares/auth.middleware.js";
 
 // Configure App
 dotenv.config({ quiet: true });
@@ -18,9 +24,25 @@ app.use(express.json());
 app.use(cookieParser());
 
 // Injecting Routes
+
+// User Routes - contains public and private routes
 app.use("/api/users", userRoutes);
 
-app.use("/api/admin", adminRoutes);
+// Admin Routes - contains protected routes
+app.use(
+    "/api/admin",
+    checkUserAuthentication,
+    checkAdminAuthorization,
+    adminRoutes
+);
+
+// Trainer Routes - contains protected routes
+app.use(
+    "/api/trainer",
+    checkUserAuthentication,
+    checkTrainerAuthorization,
+    trainerRoutes
+);
 
 // Connect Database and Start App
 console.log("Starting...");

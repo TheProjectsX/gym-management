@@ -2,8 +2,8 @@ import { Schema, model, Types } from "mongoose";
 
 const bookingSchema = new Schema(
     {
-        userId: { type: Types.ObjectId, ref: "User", required: true },
-        classScheduleId: {
+        user: { type: Types.ObjectId, ref: "User", required: true },
+        schedule: {
             type: Types.ObjectId,
             ref: "ClassSchedule",
             required: true,

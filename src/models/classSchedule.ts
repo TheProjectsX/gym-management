@@ -4,7 +4,7 @@ const classScheduleSchema = new Schema(
     {
         startTime: { type: Date, required: true },
         endTime: { type: Date, required: true },
-        trainerId: { type: Types.ObjectId, ref: "User", required: true },
+        trainer: { type: Types.ObjectId, ref: "User", required: true },
     },
     { timestamps: true }
 );
