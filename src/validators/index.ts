@@ -1,15 +1,16 @@
+import { StatusCodes } from "http-status-codes";
 import { z, type ZodObject } from "zod";
 
 // Schema
 const registerSchema = z.object({
-    name: z.string().min(6),
+    name: z.string().min(2),
     email: z.email(),
-    password: z.minLength(6),
+    password: z.string().min(6),
 });
 
 const loginSchema = z.object({
     email: z.email(),
-    password: z.minLength(6),
+    password: z.string().min(6),
 });
 
 const newScheduleSchema = z.object({
@@ -26,10 +27,16 @@ const validateSchema = (schema: ZodObject, data: unknown) => {
 
         return {
             success: false,
+            statusCode: StatusCodes.BAD_REQUEST,
             message: "Validation error occurred.",
             errorDetails: {
                 field: error.path[0],
-                message: error.message,
+                message:
+                    error.code === "invalid_type"
+                        ? error.input === "undefined"
+                            ? `${error.path[0].toString()} is required`
+                            : error.message
+                        : error.message,
             },
         };
     }

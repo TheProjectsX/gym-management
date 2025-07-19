@@ -2,6 +2,7 @@ import express from "express";
 import {
     bookSchedule,
     cancelBooking,
+    getBookings,
     getSchedules,
     loginUser,
     logoutUser,
@@ -11,17 +12,25 @@ import {
     validateUserLogin,
     validateUserRegister,
 } from "../middlewares/validate.middleware.js";
-import { checkUserAuthentication } from "../middlewares/auth.middleware.js";
+import {
+    checkAlreadyLoggedIn,
+    checkUserAuthentication,
+} from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
 /* Public Routes */
 
 // Register new User
-router.post("/register", validateUserRegister, registerUser);
+router.post(
+    "/register",
+    checkAlreadyLoggedIn,
+    validateUserRegister,
+    registerUser
+);
 
 // Login User
-router.post("/login", validateUserLogin, loginUser);
+router.post("/login", checkAlreadyLoggedIn, validateUserLogin, loginUser);
 
 /* Private Routes */
 
@@ -34,7 +43,10 @@ router.get("/me/schedules", checkUserAuthentication, getSchedules);
 // Book a Schedule
 router.post("/me/schedules/book", checkUserAuthentication, bookSchedule);
 
-// Cancel a Schedule
-router.post("/me/schedules/cancel", checkUserAuthentication, cancelBooking);
+// Get all Bookings
+router.get("/me/bookings", checkUserAuthentication, getBookings);
+
+// Cancel a Booking
+router.post("/me/bookings/cancel", checkUserAuthentication, cancelBooking);
 
 export default router;

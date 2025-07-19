@@ -1,4 +1,4 @@
-import { type Request, type Response } from "express";
+import { NextFunction, type Request, type Response } from "express";
 import { StatusCodes } from "http-status-codes";
 import { UserModel } from "../models/user.js";
 import { genHash, genToken, hashMatched } from "../utils/index.js";
@@ -17,7 +17,11 @@ export const cookieOptions = {
 
 /* Public */
 
-export const registerUser = async (req: Request, res: Response) => {
+export const registerUser = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
     const body = req.body;
 
     const hashedPassword = genHash(body.password);
@@ -47,16 +51,17 @@ export const registerUser = async (req: Request, res: Response) => {
                 message: "Registration Successful!",
                 ...userData,
             });
-    } catch (error) {
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-            success: false,
-            message: "Failed to Create Account",
-            error: error instanceof Error ? error.message : String(error),
-        });
+    } catch (e) {
+        const error = new Error("Failed to Create Account");
+        next(error);
     }
 };
 
-export const loginUser = async (req: Request, res: Response) => {
+export const loginUser = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
     const { email, password } = req.body;
 
     try {
@@ -64,6 +69,7 @@ export const loginUser = async (req: Request, res: Response) => {
         if (!targetUser)
             return res.status(StatusCodes.UNAUTHORIZED).json({
                 success: false,
+                statusCode: StatusCodes.UNAUTHORIZED,
                 message: "Invalid Credentials",
             });
 
@@ -71,6 +77,7 @@ export const loginUser = async (req: Request, res: Response) => {
         if (!matched)
             return res.status(StatusCodes.UNAUTHORIZED).json({
                 success: false,
+                statusCode: StatusCodes.UNAUTHORIZED,
                 message: "Invalid Credentials",
             });
 
@@ -90,17 +97,18 @@ export const loginUser = async (req: Request, res: Response) => {
                 message: "Login Successful!",
                 ...userData,
             });
-    } catch (error) {
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-            success: false,
-            message: "Failed to Login",
-            error: error instanceof Error ? error.message : String(error),
-        });
+    } catch (e) {
+        const error = new Error("Failed to Login");
+        next(error);
     }
 };
 
 /* Private */
-export const logoutUser = async (req: Request, res: Response) => {
+export const logoutUser = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
     res.clearCookie("access_token", cookieOptions).status(StatusCodes.OK).json({
         success: true,
         statusCode: StatusCodes.OK,
@@ -108,7 +116,11 @@ export const logoutUser = async (req: Request, res: Response) => {
     });
 };
 
-export const getSchedules = async (req: Request, res: Response) => {
+export const getSchedules = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
     const userId = req.user?.id;
 
     try {
@@ -154,13 +166,10 @@ export const getSchedules = async (req: Request, res: Response) => {
             },
             {
                 $project: {
-                    bookings: 0,
                     startTime: 1,
                     endTime: 1,
-                    trainer: {
-                        name: "$trainer.name",
-                        email: "$trainer.email",
-                    },
+                    "trainer.name": 1,
+                    "trainer.email": 1,
                     bookedCount: 1,
                     isFull: 1,
                     isBooked: 1,
@@ -176,22 +185,24 @@ export const getSchedules = async (req: Request, res: Response) => {
             message: "Schedules Parsed",
             data: schedules,
         });
-    } catch (error) {
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-            success: false,
-            message: "Failed to Parse Schedule",
-            error: error instanceof Error ? error.message : String(error),
-        });
+    } catch (e) {
+        const error = new Error("Failed to Parse Schedules");
+        next(error);
     }
 };
 
-export const bookSchedule = async (req: Request, res: Response) => {
+export const bookSchedule = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
     const { id } = req.body;
     const userId = req.user?.id;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
         return res.status(StatusCodes.BAD_REQUEST).json({
             success: false,
+            statusCode: StatusCodes.BAD_REQUEST,
             message: "Validation error occurred.",
             errorDetails: {
                 field: "id",
@@ -205,25 +216,31 @@ export const bookSchedule = async (req: Request, res: Response) => {
         if (!targetSchedule)
             return res.status(StatusCodes.NOT_FOUND).json({
                 success: false,
+                statusCode: StatusCodes.NOT_FOUND,
                 message: "Schedule not found",
             });
 
         const bookings = await BookingModel.find({ schedule: id });
-        if (bookings.length === 10) {
-            return res.status(StatusCodes.BAD_REQUEST).json({
-                success: false,
-                message:
-                    "Class schedule is full. Maximum 10 trainees allowed per schedule.",
-            });
-        }
 
+        // If already booked, we don't need to show if already full or not!
         const alreadyBooked = bookings.some(
-            (booking) => booking.user === userId
+            (booking) => String(booking.user) === userId
         );
+
         if (alreadyBooked) {
             return res.status(StatusCodes.BAD_REQUEST).json({
                 success: false,
+                statusCode: StatusCodes.BAD_REQUEST,
                 message: "You already Booked this Schedule",
+            });
+        }
+
+        if (bookings.length === 10) {
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                success: false,
+                statusCode: StatusCodes.BAD_REQUEST,
+                message:
+                    "Class schedule is full. Maximum 10 trainees allowed per schedule.",
             });
         }
 
@@ -240,22 +257,97 @@ export const bookSchedule = async (req: Request, res: Response) => {
             message: "Schedule Booked Successfully",
             ...response.toObject(),
         });
-    } catch (error) {
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-            success: false,
-            message: "Failed to Book Schedule",
-            error: error instanceof Error ? error.message : String(error),
-        });
+    } catch (e) {
+        const error = new Error("Failed to Book Schedule");
+        next(error);
     }
 };
 
-export const cancelBooking = async (req: Request, res: Response) => {
+export const getBookings = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    const userId = req.user?.id;
+
+    try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const pipeline = [
+            {
+                $match: {
+                    user: new mongoose.Types.ObjectId(userId),
+                },
+            },
+            {
+                $lookup: {
+                    from: "classschedules",
+                    localField: "schedule",
+                    foreignField: "_id",
+                    as: "scheduleInfo",
+                },
+            },
+            {
+                $unwind: "$scheduleInfo",
+            },
+            {
+                $match: {
+                    "scheduleInfo.startTime": {
+                        $gte: today,
+                    },
+                },
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "scheduleInfo.trainer",
+                    foreignField: "_id",
+                    as: "trainerInfo",
+                },
+            },
+            { $unwind: "$trainerInfo" },
+            {
+                $project: {
+                    schedule: 1,
+                    scheduleInfo: {
+                        startTime: 1,
+                        endTime: 1,
+                    },
+                    trainer: {
+                        name: "$trainerInfo.name",
+                        email: "$trainerInfo.email",
+                    },
+                },
+            },
+        ];
+
+        const schedules = await BookingModel.aggregate(pipeline);
+
+        res.status(StatusCodes.OK).json({
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Schedules Parsed",
+            data: [...schedules],
+        });
+    } catch (e) {
+        const error = new Error("Failed to Parse Bookings");
+        next(error);
+    }
+};
+
+export const cancelBooking = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
     const { id } = req.body;
     const userId = req.user?.id;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
         return res.status(StatusCodes.BAD_REQUEST).json({
             success: false,
+            statusCode: StatusCodes.BAD_REQUEST,
             message: "Validation error occurred.",
             errorDetails: {
                 field: "id",
@@ -269,12 +361,14 @@ export const cancelBooking = async (req: Request, res: Response) => {
         if (!targetBooking)
             return res.status(StatusCodes.NOT_FOUND).json({
                 success: false,
+                statusCode: StatusCodes.NOT_FOUND,
                 message: "Booking not found",
             });
 
-        if (targetBooking.user !== userId) {
+        if (String(targetBooking.user) !== userId) {
             return res.status(StatusCodes.UNAUTHORIZED).json({
                 success: false,
+                statusCode: StatusCodes.UNAUTHORIZED,
                 message: "Unauthorized Request",
             });
         }
@@ -286,11 +380,8 @@ export const cancelBooking = async (req: Request, res: Response) => {
             statusCode: StatusCodes.OK,
             message: "Booking canceled successfully",
         });
-    } catch (error) {
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-            success: false,
-            message: "Failed to Cancel Booking",
-            error: error instanceof Error ? error.message : String(error),
-        });
+    } catch (e) {
+        const error = new Error("Failed to Cancel Booking");
+        next(error);
     }
 };

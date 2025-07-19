@@ -26,7 +26,11 @@ export const checkUserAuthentication = async (
     if (!access_token) {
         return res
             .status(StatusCodes.UNAUTHORIZED)
-            .json({ success: false, message: "Authentication failed!" });
+            .json({
+                success: false,
+                statusCode: StatusCodes.UNAUTHORIZED,
+                message: "Authentication failed!",
+            });
     }
 
     try {
@@ -36,10 +40,36 @@ export const checkUserAuthentication = async (
         return res
             .clearCookie("access_token", cookieOptions)
             .status(StatusCodes.UNAUTHORIZED)
-            .json({ success: false, message: "Authentication failed!" });
+            .json({
+                success: false,
+                statusCode: StatusCodes.UNAUTHORIZED,
+                message: "Authentication failed!",
+            });
     }
 
     next();
+};
+
+export const checkAlreadyLoggedIn = (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    const { access_token } = req.cookies;
+    if (!access_token) {
+        return next();
+    }
+
+    try {
+        verifyToken(access_token);
+        res.status(StatusCodes.BAD_REQUEST).json({
+            success: false,
+            statusCode: StatusCodes.BAD_REQUEST,
+            message: "Already Logged In",
+        });
+    } catch (error) {
+        next();
+    }
 };
 
 export const checkAdminAuthorization = async (
@@ -52,6 +82,7 @@ export const checkAdminAuthorization = async (
     if (user?.role !== "admin") {
         return res.status(StatusCodes.FORBIDDEN).json({
             success: false,
+            statusCode: StatusCodes.FORBIDDEN,
             message: "Unauthorized Request",
         });
     }
@@ -69,6 +100,7 @@ export const checkTrainerAuthorization = async (
     if (user?.role !== "trainer") {
         return res.status(StatusCodes.FORBIDDEN).json({
             success: false,
+            statusCode: StatusCodes.FORBIDDEN,
             message: "Unauthorized Request",
         });
     }

@@ -12,6 +12,7 @@ export const validateUserRegister = (
     next: NextFunction
 ) => {
     const body = req.body;
+
     const validation = validateRegister(body);
 
     if (!validation.success) {
@@ -32,6 +33,7 @@ export const validateUserLogin = (
     if (!validation.success) {
         res.status(StatusCodes.UNAUTHORIZED).json({
             success: false,
+            statusCode: StatusCodes.UNAUTHORIZED,
             message: "Invalid Credentials",
         });
     } else {

@@ -1,21 +1,21 @@
-import type { Request, Response } from "express";
-import { UserModel } from "../models/user.js";
+import type { NextFunction, Request, Response } from "express";
 import { ClassScheduleModel } from "../models/classSchedule.js";
 import { StatusCodes } from "http-status-codes";
 
-export const getSchedules = async (req: Request, res: Response) => {
-    const user = req.user;
+export const getSchedules = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    const userId = req.user?.id;
 
     try {
-        const currentUser = await UserModel.findOne({ email: user?.email });
-        const userId = currentUser?._id;
-
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
         const schedules = await ClassScheduleModel.find({
             startTime: { $gte: today },
-            trainerId: userId,
+            trainer: userId,
         });
 
         res.status(StatusCodes.OK).json({
@@ -24,11 +24,8 @@ export const getSchedules = async (req: Request, res: Response) => {
             message: "Schedules Parsed",
             data: [...schedules],
         });
-    } catch (error) {
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-            success: false,
-            message: "Failed to Parse Schedule Data",
-            error: error instanceof Error ? error.message : String(error),
-        });
+    } catch (e) {
+        const error = new Error("Failed to Parse Schedules");
+        next(error);
     }
 };

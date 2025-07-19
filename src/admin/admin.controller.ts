@@ -1,15 +1,40 @@
-import type { Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 import { UserModel } from "../models/user.js";
 import mongoose from "mongoose";
 import { StatusCodes } from "http-status-codes";
 import { ClassScheduleModel } from "../models/classSchedule.js";
 
-export const upgradeToTrainer = async (req: Request, res: Response) => {
+export const getUsers = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        const users = await UserModel.find({}, { password: 0 });
+
+        res.status(StatusCodes.OK).json({
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Users Parsed Successfully",
+            data: users,
+        });
+    } catch (e) {
+        const error = new Error("Failed to Parse Users");
+        next(error);
+    }
+};
+
+export const upgradeToTrainer = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
     const { id } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
         return res.status(StatusCodes.BAD_REQUEST).json({
             success: false,
+            statusCode: StatusCodes.BAD_REQUEST,
             message: "Validation error occurred.",
             errorDetails: {
                 field: "id",
@@ -21,14 +46,17 @@ export const upgradeToTrainer = async (req: Request, res: Response) => {
     try {
         const targetUser = await UserModel.findById(id);
         if (!targetUser)
-            return res
-                .status(StatusCodes.NOT_FOUND)
-                .json({ success: false, message: "User not found" });
+            return res.status(StatusCodes.NOT_FOUND).json({
+                success: false,
+                statusCode: StatusCodes.NOT_FOUND,
+                message: "User not found",
+            });
 
         if (targetUser.role === "trainer") {
             return res.status(StatusCodes.CONFLICT).json({
                 success: false,
-                message: "Role is already Trainer",
+                statusCode: StatusCodes.CONFLICT,
+                message: "User is already a Trainer",
             });
         }
 
@@ -39,21 +67,23 @@ export const upgradeToTrainer = async (req: Request, res: Response) => {
             statusCode: StatusCodes.OK,
             message: "User upgraded to Trainer",
         });
-    } catch (error) {
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-            success: false,
-            message: "Failed to Upgrade User",
-            error: error instanceof Error ? error.message : String(error),
-        });
+    } catch (e) {
+        const error = new Error("Failed to Upgrade User");
+        next(error);
     }
 };
 
-export const createSchedule = async (req: Request, res: Response) => {
-    const { startTime, trainerId } = req.body;
+export const downgradeToTrainee = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    const { id } = req.body;
 
-    if (!mongoose.Types.ObjectId.isValid(trainerId)) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
         return res.status(StatusCodes.BAD_REQUEST).json({
             success: false,
+            statusCode: StatusCodes.BAD_REQUEST,
             message: "Validation error occurred.",
             errorDetails: {
                 field: "id",
@@ -62,13 +92,72 @@ export const createSchedule = async (req: Request, res: Response) => {
         });
     }
 
-    // Check if already 5 Schedules Created
+    try {
+        const targetUser = await UserModel.findById(id);
+        if (!targetUser)
+            return res.status(StatusCodes.NOT_FOUND).json({
+                success: false,
+                statusCode: StatusCodes.NOT_FOUND,
+                message: "User not found",
+            });
+
+        if (targetUser.role === "trainee") {
+            return res.status(StatusCodes.CONFLICT).json({
+                success: false,
+                statusCode: StatusCodes.CONFLICT,
+                message: "User is already a Trainee",
+            });
+        }
+
+        await UserModel.updateOne({ _id: id }, { $set: { role: "trainee" } });
+
+        res.status(StatusCodes.OK).json({
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "User downgraded to Trainee",
+        });
+    } catch (e) {
+        const error = new Error("Failed to Downgrade User");
+        next(error);
+    }
+};
+
+export const createSchedule = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    const { startTime, trainerId } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(trainerId)) {
+        return res.status(StatusCodes.BAD_REQUEST).json({
+            success: false,
+            statusCode: StatusCodes.BAD_REQUEST,
+            message: "Validation error occurred.",
+            errorDetails: {
+                field: "trainerId",
+                message: "Invalid trainer ID provided",
+            },
+        });
+    }
+
+    // Check if Time already Passed
+    if (new Date(startTime).getTime() < Date.now()) {
+        return res.status(StatusCodes.BAD_REQUEST).json({
+            success: false,
+            statusCode: StatusCodes.BAD_REQUEST,
+            message: "Given time has Already Passed",
+        });
+    }
+
     try {
         const startDateTime = new Date(startTime);
 
         // Check if already 5 booked
-        const dayStart = new Date(startDateTime.setHours(0, 0, 0, 0));
-        const dayEnd = new Date(startDateTime.setHours(23, 59, 59, 999));
+        const dayStart = new Date(new Date(startDateTime).setHours(0, 0, 0, 0));
+        const dayEnd = new Date(
+            new Date(startDateTime).setHours(23, 59, 59, 999)
+        );
 
         const schedules = await ClassScheduleModel.find({
             startTime: {
@@ -80,7 +169,8 @@ export const createSchedule = async (req: Request, res: Response) => {
         if (schedules.length === 5) {
             return res.status(StatusCodes.BAD_REQUEST).json({
                 success: false,
-                message: "Maximum number of Classes Created for the Date",
+                statusCode: StatusCodes.BAD_REQUEST,
+                message: "Maximum 5 Classes already Created for the Date",
             });
         }
 
@@ -95,15 +185,13 @@ export const createSchedule = async (req: Request, res: Response) => {
         if (isOverlap) {
             return res.status(StatusCodes.BAD_REQUEST).json({
                 success: false,
-                message: "New Class overlaps with Other Class",
+                statusCode: StatusCodes.BAD_REQUEST,
+                message: "New Class time overlaps with Other Class",
             });
         }
-    } catch (error) {
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-            success: false,
-            message: "Failed to Create Schedule",
-            error: error instanceof Error ? error.message : String(error),
-        });
+    } catch (e) {
+        const error = new Error("Failed to Create Schedule");
+        return next(error);
     }
 
     // Create Schedule
@@ -112,7 +200,15 @@ export const createSchedule = async (req: Request, res: Response) => {
         if (!targetTrainer)
             return res.status(StatusCodes.NOT_FOUND).json({
                 success: false,
+                statusCode: StatusCodes.NOT_FOUND,
                 message: "Target trainer not found for the class schedule",
+            });
+
+        if (targetTrainer.role !== "trainer")
+            return res.status(StatusCodes.NOT_FOUND).json({
+                success: false,
+                statusCode: StatusCodes.NOT_FOUND,
+                message: "Target user is not a Trainer",
             });
 
         const newSchedule = new ClassScheduleModel({
@@ -131,11 +227,74 @@ export const createSchedule = async (req: Request, res: Response) => {
             message: "Schedule Created Successfully",
             ...response.toObject(),
         });
-    } catch (error) {
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-            success: false,
-            message: "Failed to Create Schedule",
-            error: error instanceof Error ? error.message : String(error),
+    } catch (e) {
+        const error = new Error("Failed to Create Schedule");
+        next(error);
+    }
+};
+
+export const getSchedules = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const pipeline = [
+            {
+                $match: {
+                    startTime: { $gte: today },
+                },
+            },
+            {
+                $lookup: {
+                    from: "bookings",
+                    localField: "_id",
+                    foreignField: "schedule",
+                    as: "bookings",
+                },
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "trainer",
+                    foreignField: "_id",
+                    as: "trainer",
+                },
+            },
+            {
+                $unwind: "$trainer",
+            },
+            {
+                $addFields: {
+                    bookedCount: { $size: "$bookings" },
+                    isFull: { $eq: [{ $size: "$bookings" }, 10] },
+                },
+            },
+            {
+                $project: {
+                    startTime: 1,
+                    endTime: 1,
+                    "trainer.name": 1,
+                    "trainer.email": 1,
+                    bookedCount: 1,
+                    isFull: 1,
+                },
+            },
+        ];
+
+        const schedules = await ClassScheduleModel.aggregate(pipeline);
+
+        res.status(StatusCodes.OK).json({
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Schedules Parsed",
+            data: schedules,
         });
+    } catch (e) {
+        const error = new Error("Failed to Parse Schedules");
+        next(error);
     }
 };
