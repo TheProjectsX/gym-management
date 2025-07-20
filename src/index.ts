@@ -25,8 +25,8 @@ app.use(express.json());
 app.use(cookieParser());
 
 // Test route
-app.get("/test", async (req: Request, res: Response) => {
-    res.json({ success: true });
+app.get("/", async (req: Request, res: Response) => {
+    res.json({ success: true, message: "Server Working Fine! ✌️" });
 });
 
 // Injecting Routes

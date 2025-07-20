@@ -5,7 +5,8 @@
     "main": "dist/index.js",
     "scripts": {
         "build": "tsc",
-        "dev": "nodemon"
+        "dev": "nodemon",
+        "deploy": "rm -rf dist && tsc && vercel --prod"
     },
     "keywords": [],
     "author": "",
