@@ -14,6 +14,7 @@ import {
 } from "../middlewares/validate.middleware.js";
 import {
     checkAlreadyLoggedIn,
+    checkTraineeAuthorization,
     checkUserAuthentication,
 } from "../middlewares/auth.middleware.js";
 
@@ -38,15 +39,35 @@ router.post("/login", checkAlreadyLoggedIn, validateUserLogin, loginUser);
 router.get("/logout", checkUserAuthentication, logoutUser);
 
 // Get Schedules
-router.get("/me/schedules", checkUserAuthentication, getSchedules);
+router.get(
+    "/me/schedules",
+    checkUserAuthentication,
+    checkTraineeAuthorization,
+    getSchedules
+);
 
 // Book a Schedule
-router.post("/me/schedules/book", checkUserAuthentication, bookSchedule);
+router.post(
+    "/me/schedules/book",
+    checkUserAuthentication,
+    checkTraineeAuthorization,
+    bookSchedule
+);
 
 // Get all Bookings
-router.get("/me/bookings", checkUserAuthentication, getBookings);
+router.get(
+    "/me/bookings",
+    checkUserAuthentication,
+    checkTraineeAuthorization,
+    getBookings
+);
 
 // Cancel a Booking
-router.post("/me/bookings/cancel", checkUserAuthentication, cancelBooking);
+router.post(
+    "/me/bookings/cancel",
+    checkUserAuthentication,
+    checkTraineeAuthorization,
+    cancelBooking
+);
 
 export default router;

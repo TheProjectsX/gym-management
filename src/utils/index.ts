@@ -12,8 +12,13 @@ export const genToken = (payload: any) =>
 export const verifyToken = (token: string) =>
     jwt.verify(token, process.env.JWT_SECRET || "");
 
-export const getBST = () =>
-    new Date(new Date().toLocaleString(undefined, { timeZone: "Asia/Dhaka" }));
+export const getBST = () => {
+    const bstTimeString = new Date().toLocaleString("en-US", {
+        timeZone: "Asia/Dhaka",
+    });
+
+    return new Date(bstTimeString);
+};
 
 export const createError = (
     message: string,

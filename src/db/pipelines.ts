@@ -38,6 +38,7 @@ export const getAdminSchedulePipeline = () => {
         },
         {
             $project: {
+                title: 1,
                 startTime: 1,
                 endTime: 1,
                 "trainer.name": 1,
@@ -52,6 +53,7 @@ export const getAdminSchedulePipeline = () => {
 export const getUserSchedulePipeline = (userId: string) => {
     const today = getBST();
     today.setHours(0, 0, 0, 0);
+
     return [
         {
             $match: {
@@ -91,6 +93,7 @@ export const getUserSchedulePipeline = (userId: string) => {
         },
         {
             $project: {
+                title: 1,
                 startTime: 1,
                 endTime: 1,
                 "trainer.name": 1,

@@ -6,6 +6,7 @@ import {
     getUsers,
     upgradeToTrainer,
 } from "./admin.controller.js";
+import { validateNewSchedule } from "../middlewares/validate.middleware.js";
 
 const router = express.Router();
 
@@ -19,7 +20,7 @@ router.post("/trainer/upgrade", upgradeToTrainer);
 router.post("/trainer/downgrade", downgradeToTrainee);
 
 // Schedule new Class
-router.post("/schedules/new", createSchedule);
+router.post("/schedules/new", validateNewSchedule, createSchedule);
 
 // Get Schedules
 router.get("/schedules", getSchedules);

@@ -14,6 +14,7 @@ const loginSchema = z.object({
 });
 
 const newScheduleSchema = z.object({
+    title: z.string().min(5),
     startTime: z.iso.datetime(),
     trainerId: z.string(),
 });

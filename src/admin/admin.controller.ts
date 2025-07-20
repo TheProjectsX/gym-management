@@ -111,7 +111,7 @@ export const createSchedule = async (
     res: Response,
     next: NextFunction
 ) => {
-    const { startTime, trainerId } = req.body;
+    const { title, startTime, trainerId } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(trainerId)) {
         return next(
@@ -198,6 +198,7 @@ export const createSchedule = async (
             );
 
         const newSchedule = new ClassScheduleModel({
+            title,
             startTime,
             endTime: new Date(
                 new Date(startTime).getTime() + 2 * 60 * 60 * 1000

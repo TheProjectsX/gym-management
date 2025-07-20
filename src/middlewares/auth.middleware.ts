@@ -68,6 +68,26 @@ export const checkAlreadyLoggedIn = (
     }
 };
 
+export const checkTraineeAuthorization = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    const user = req.user;
+
+    if (user?.role !== "trainee") {
+        return next(
+            createError(
+                "Unauthorized Request",
+                StatusCodes.FORBIDDEN,
+                "This route dedicated only to Trainee"
+            )
+        );
+    }
+
+    next();
+};
+
 export const checkAdminAuthorization = async (
     req: Request,
     res: Response,
