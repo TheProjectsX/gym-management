@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import { ClassScheduleModel } from "../models/classSchedule.js";
 import { StatusCodes } from "http-status-codes";
+import { getBST } from "../utils/index.js";
 
 export const getSchedules = async (
     req: Request,
@@ -10,7 +11,7 @@ export const getSchedules = async (
     const userId = req.user?.id;
 
     try {
-        const today = new Date();
+        const today = getBST();
         today.setHours(0, 0, 0, 0);
 
         const schedules = await ClassScheduleModel.find({

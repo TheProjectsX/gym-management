@@ -1,7 +1,7 @@
 import { NextFunction, type Request, type Response } from "express";
 import { StatusCodes } from "http-status-codes";
 import { UserModel } from "../models/user.js";
-import { genHash, genToken, hashMatched } from "../utils/index.js";
+import { createError, genHash, genToken, hashMatched } from "../utils/index.js";
 import { ClassScheduleModel } from "../models/classSchedule.js";
 import mongoose from "mongoose";
 import { BookingModel } from "../models/booking.js";
@@ -71,19 +71,15 @@ export const loginUser = async (
     try {
         const targetUser = await UserModel.findOne({ email });
         if (!targetUser)
-            return res.status(StatusCodes.UNAUTHORIZED).json({
-                success: false,
-                statusCode: StatusCodes.UNAUTHORIZED,
-                message: "Invalid Credentials",
-            });
+            return next(
+                createError("Invalid Credentials", StatusCodes.UNAUTHORIZED)
+            );
 
         const matched = hashMatched(password, targetUser.password);
         if (!matched)
-            return res.status(StatusCodes.UNAUTHORIZED).json({
-                success: false,
-                statusCode: StatusCodes.UNAUTHORIZED,
-                message: "Invalid Credentials",
-            });
+            return next(
+                createError("Invalid Credentials", StatusCodes.UNAUTHORIZED)
+            );
 
         const { password: _, ...userData } = targetUser.toObject();
 
@@ -153,25 +149,20 @@ export const bookSchedule = async (
     const userId = req.user?.id;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-        return res.status(StatusCodes.BAD_REQUEST).json({
-            success: false,
-            statusCode: StatusCodes.BAD_REQUEST,
-            message: "Validation error occurred.",
-            errorDetails: {
+        return next(
+            createError("Validation error occurred.", StatusCodes.BAD_REQUEST, {
                 field: "id",
                 message: "Invalid schedule ID provided",
-            },
-        });
+            })
+        );
     }
 
     try {
         const targetSchedule = await ClassScheduleModel.findById(id);
         if (!targetSchedule)
-            return res.status(StatusCodes.NOT_FOUND).json({
-                success: false,
-                statusCode: StatusCodes.NOT_FOUND,
-                message: "Schedule not found",
-            });
+            return next(
+                createError("Schedule not found", StatusCodes.NOT_FOUND)
+            );
 
         const bookings = await BookingModel.find({ schedule: id });
 
@@ -181,20 +172,21 @@ export const bookSchedule = async (
         );
 
         if (alreadyBooked) {
-            return res.status(StatusCodes.BAD_REQUEST).json({
-                success: false,
-                statusCode: StatusCodes.BAD_REQUEST,
-                message: "You already Booked this Schedule",
-            });
+            return next(
+                createError(
+                    "You already Booked this Schedule",
+                    StatusCodes.BAD_REQUEST
+                )
+            );
         }
 
         if (bookings.length === 10) {
-            return res.status(StatusCodes.BAD_REQUEST).json({
-                success: false,
-                statusCode: StatusCodes.BAD_REQUEST,
-                message:
+            return next(
+                createError(
                     "Class schedule is full. Maximum 10 trainees allowed per schedule.",
-            });
+                    StatusCodes.BAD_REQUEST
+                )
+            );
         }
 
         const newBook = new BookingModel({
@@ -249,32 +241,25 @@ export const cancelBooking = async (
     const userId = req.user?.id;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-        return res.status(StatusCodes.BAD_REQUEST).json({
-            success: false,
-            statusCode: StatusCodes.BAD_REQUEST,
-            message: "Validation error occurred.",
-            errorDetails: {
+        return next(
+            createError("Validation error occurred.", StatusCodes.BAD_REQUEST, {
                 field: "id",
                 message: "Invalid booking ID provided",
-            },
-        });
+            })
+        );
     }
 
     try {
         const targetBooking = await BookingModel.findById(id);
         if (!targetBooking)
-            return res.status(StatusCodes.NOT_FOUND).json({
-                success: false,
-                statusCode: StatusCodes.NOT_FOUND,
-                message: "Booking not found",
-            });
+            return next(
+                createError("Booking not found", StatusCodes.NOT_FOUND)
+            );
 
         if (String(targetBooking.user) !== userId) {
-            return res.status(StatusCodes.UNAUTHORIZED).json({
-                success: false,
-                statusCode: StatusCodes.UNAUTHORIZED,
-                message: "Unauthorized Request",
-            });
+            return next(
+                createError("Unauthorized Request", StatusCodes.UNAUTHORIZED)
+            );
         }
 
         await BookingModel.findByIdAndDelete(id);

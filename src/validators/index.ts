@@ -27,8 +27,6 @@ const validateSchema = (schema: ZodObject, data: unknown) => {
 
         return {
             success: false,
-            statusCode: StatusCodes.BAD_REQUEST,
-            message: "Validation error occurred.",
             errorDetails: {
                 field: error.path[0],
                 message:
@@ -40,7 +38,7 @@ const validateSchema = (schema: ZodObject, data: unknown) => {
             },
         };
     }
-    return { success: true, data: result.data };
+    return { success: true };
 };
 
 // Validator Instances

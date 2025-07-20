@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import { verifyToken } from "../utils/index.js";
+import { createError, verifyToken } from "../utils/index.js";
 import { StatusCodes } from "http-status-codes";
 import { cookieOptions } from "../user/user.controller.js";
 
@@ -24,13 +24,13 @@ export const checkUserAuthentication = async (
 ) => {
     const { access_token } = req.cookies;
     if (!access_token) {
-        return res
-            .status(StatusCodes.UNAUTHORIZED)
-            .json({
-                success: false,
-                statusCode: StatusCodes.UNAUTHORIZED,
-                message: "Authentication failed!",
-            });
+        return next(
+            createError(
+                "Unauthenticated Request",
+                StatusCodes.UNAUTHORIZED,
+                "You need to login to perform this action"
+            )
+        );
     }
 
     try {
@@ -62,11 +62,7 @@ export const checkAlreadyLoggedIn = (
 
     try {
         verifyToken(access_token);
-        res.status(StatusCodes.BAD_REQUEST).json({
-            success: false,
-            statusCode: StatusCodes.BAD_REQUEST,
-            message: "Already Logged In",
-        });
+        next(createError("You are already Logged In", StatusCodes.BAD_REQUEST));
     } catch (error) {
         next();
     }
@@ -80,11 +76,13 @@ export const checkAdminAuthorization = async (
     const user = req.user;
 
     if (user?.role !== "admin") {
-        return res.status(StatusCodes.FORBIDDEN).json({
-            success: false,
-            statusCode: StatusCodes.FORBIDDEN,
-            message: "Unauthorized Request",
-        });
+        return next(
+            createError(
+                "Unauthorized Request",
+                StatusCodes.FORBIDDEN,
+                "You must be an Admin to perform this action"
+            )
+        );
     }
 
     next();
@@ -98,11 +96,13 @@ export const checkTrainerAuthorization = async (
     const user = req.user;
 
     if (user?.role !== "trainer") {
-        return res.status(StatusCodes.FORBIDDEN).json({
-            success: false,
-            statusCode: StatusCodes.FORBIDDEN,
-            message: "Unauthorized Request",
-        });
+        return next(
+            createError(
+                "Unauthorized Request",
+                StatusCodes.FORBIDDEN,
+                "You must be an Trainer to perform this action"
+            )
+        );
     }
 
     next();

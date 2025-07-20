@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import { StatusCodes } from "http-status-codes";
 import { ClassScheduleModel } from "../models/classSchedule.js";
 import { getAdminSchedulePipeline } from "../db/pipelines.js";
+import { createError, getBST } from "../utils/index.js";
 
 export const getUsers = async (
     req: Request,
@@ -33,32 +34,23 @@ export const upgradeToTrainer = async (
     const { id } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-        return res.status(StatusCodes.BAD_REQUEST).json({
-            success: false,
-            statusCode: StatusCodes.BAD_REQUEST,
-            message: "Validation error occurred.",
-            errorDetails: {
+        return next(
+            createError("Validation error occurred.", StatusCodes.BAD_REQUEST, {
                 field: "id",
                 message: "Invalid user ID provided",
-            },
-        });
+            })
+        );
     }
 
     try {
         const targetUser = await UserModel.findById(id);
         if (!targetUser)
-            return res.status(StatusCodes.NOT_FOUND).json({
-                success: false,
-                statusCode: StatusCodes.NOT_FOUND,
-                message: "User not found",
-            });
+            return next(createError("User not found", StatusCodes.NOT_FOUND));
 
         if (targetUser.role === "trainer") {
-            return res.status(StatusCodes.CONFLICT).json({
-                success: false,
-                statusCode: StatusCodes.CONFLICT,
-                message: "User is already a Trainer",
-            });
+            return next(
+                createError("User is already a Trainer", StatusCodes.CONFLICT)
+            );
         }
 
         await UserModel.updateOne({ _id: id }, { $set: { role: "trainer" } });
@@ -82,32 +74,23 @@ export const downgradeToTrainee = async (
     const { id } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-        return res.status(StatusCodes.BAD_REQUEST).json({
-            success: false,
-            statusCode: StatusCodes.BAD_REQUEST,
-            message: "Validation error occurred.",
-            errorDetails: {
+        return next(
+            createError("Validation error occurred.", StatusCodes.BAD_REQUEST, {
                 field: "id",
                 message: "Invalid user ID provided",
-            },
-        });
+            })
+        );
     }
 
     try {
         const targetUser = await UserModel.findById(id);
         if (!targetUser)
-            return res.status(StatusCodes.NOT_FOUND).json({
-                success: false,
-                statusCode: StatusCodes.NOT_FOUND,
-                message: "User not found",
-            });
+            return next(createError("User not found", StatusCodes.NOT_FOUND));
 
         if (targetUser.role === "trainee") {
-            return res.status(StatusCodes.CONFLICT).json({
-                success: false,
-                statusCode: StatusCodes.CONFLICT,
-                message: "User is already a Trainee",
-            });
+            return next(
+                createError("User is already a Trainee", StatusCodes.CONFLICT)
+            );
         }
 
         await UserModel.updateOne({ _id: id }, { $set: { role: "trainee" } });
@@ -131,24 +114,22 @@ export const createSchedule = async (
     const { startTime, trainerId } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(trainerId)) {
-        return res.status(StatusCodes.BAD_REQUEST).json({
-            success: false,
-            statusCode: StatusCodes.BAD_REQUEST,
-            message: "Validation error occurred.",
-            errorDetails: {
-                field: "trainerId",
+        return next(
+            createError("Validation error occurred.", StatusCodes.BAD_REQUEST, {
+                field: "id",
                 message: "Invalid trainer ID provided",
-            },
-        });
+            })
+        );
     }
 
     // Check if Time already Passed
-    if (new Date(startTime).getTime() < Date.now()) {
-        return res.status(StatusCodes.BAD_REQUEST).json({
-            success: false,
-            statusCode: StatusCodes.BAD_REQUEST,
-            message: "Given time has Already Passed",
-        });
+    if (new Date(startTime).getTime() < getBST().getTime()) {
+        return next(
+            createError(
+                "Given time has Already Passed",
+                StatusCodes.BAD_REQUEST
+            )
+        );
     }
 
     try {
@@ -168,11 +149,12 @@ export const createSchedule = async (
         });
 
         if (schedules.length === 5) {
-            return res.status(StatusCodes.BAD_REQUEST).json({
-                success: false,
-                statusCode: StatusCodes.BAD_REQUEST,
-                message: "Maximum 5 Classes already Created for the Date",
-            });
+            return next(
+                createError(
+                    "Maximum 5 Classes already Created for the Date",
+                    StatusCodes.BAD_REQUEST
+                )
+            );
         }
 
         // Check if Overlaps
@@ -184,11 +166,12 @@ export const createSchedule = async (
         });
 
         if (isOverlap) {
-            return res.status(StatusCodes.BAD_REQUEST).json({
-                success: false,
-                statusCode: StatusCodes.BAD_REQUEST,
-                message: "New Class time overlaps with Other Class",
-            });
+            return next(
+                createError(
+                    "New Class time overlaps with Other Class",
+                    StatusCodes.BAD_REQUEST
+                )
+            );
         }
     } catch (e) {
         const error = new Error("Failed to Create Schedule");
@@ -199,18 +182,20 @@ export const createSchedule = async (
     try {
         const targetTrainer = await UserModel.findById(trainerId);
         if (!targetTrainer)
-            return res.status(StatusCodes.NOT_FOUND).json({
-                success: false,
-                statusCode: StatusCodes.NOT_FOUND,
-                message: "Target trainer not found for the class schedule",
-            });
+            return next(
+                createError(
+                    "Target trainer not found for the class schedule",
+                    StatusCodes.NOT_FOUND
+                )
+            );
 
         if (targetTrainer.role !== "trainer")
-            return res.status(StatusCodes.NOT_FOUND).json({
-                success: false,
-                statusCode: StatusCodes.NOT_FOUND,
-                message: "Target user is not a Trainer",
-            });
+            return next(
+                createError(
+                    "Target user is not a Trainer",
+                    StatusCodes.NOT_FOUND
+                )
+            );
 
         const newSchedule = new ClassScheduleModel({
             startTime,

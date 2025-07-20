@@ -1,7 +1,8 @@
 import mongoose from "mongoose";
+import { getBST } from "../utils/index.js";
 
 export const getAdminSchedulePipeline = () => {
-    const today = new Date();
+    const today = getBST();
     today.setHours(0, 0, 0, 0);
 
     return [
@@ -49,7 +50,7 @@ export const getAdminSchedulePipeline = () => {
 };
 
 export const getUserSchedulePipeline = (userId: string) => {
-    const today = new Date();
+    const today = getBST();
     today.setHours(0, 0, 0, 0);
     return [
         {
@@ -103,7 +104,7 @@ export const getUserSchedulePipeline = (userId: string) => {
 };
 
 export const getUserBookingsPipeline = (userId: string) => {
-    const today = new Date();
+    const today = getBST();
     today.setHours(0, 0, 0, 0);
 
     return [

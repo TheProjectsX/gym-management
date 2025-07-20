@@ -11,3 +11,21 @@ export const genToken = (payload: any) =>
 
 export const verifyToken = (token: string) =>
     jwt.verify(token, process.env.JWT_SECRET || "");
+
+export const getBST = () =>
+    new Date(new Date().toLocaleString(undefined, { timeZone: "Asia/Dhaka" }));
+
+export const createError = (
+    message: string,
+    statusCode?: number,
+    errorDetails?: any
+) => {
+    const error = new Error(message) as Error & {
+        statusCode?: number;
+        errorDetails?: any;
+    };
+    error.statusCode = statusCode;
+    error.errorDetails = errorDetails;
+
+    return error;
+};

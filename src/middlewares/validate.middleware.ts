@@ -5,6 +5,7 @@ import {
     validateSchedule,
 } from "../validators/index.js";
 import { StatusCodes } from "http-status-codes";
+import { createError } from "../utils/index.js";
 
 export const validateUserRegister = (
     req: Request,
@@ -16,10 +17,15 @@ export const validateUserRegister = (
     const validation = validateRegister(body);
 
     if (!validation.success) {
-        res.status(StatusCodes.BAD_REQUEST).json(validation);
-    } else {
-        next();
+        return next(
+            createError(
+                "Validation error occurred",
+                StatusCodes.BAD_REQUEST,
+                validation.errorDetails
+            )
+        );
     }
+    next();
 };
 
 export const validateUserLogin = (
@@ -31,14 +37,12 @@ export const validateUserLogin = (
     const validation = validateLogin(body);
 
     if (!validation.success) {
-        res.status(StatusCodes.UNAUTHORIZED).json({
-            success: false,
-            statusCode: StatusCodes.UNAUTHORIZED,
-            message: "Invalid Credentials",
-        });
-    } else {
-        next();
+        return next(
+            createError("Invalid Credentials", StatusCodes.UNAUTHORIZED)
+        );
     }
+
+    next();
 };
 
 export const validateNewSchedule = (
@@ -50,8 +54,13 @@ export const validateNewSchedule = (
     const validation = validateSchedule(body);
 
     if (!validation.success) {
-        res.status(StatusCodes.BAD_REQUEST).json(validation);
-    } else {
-        next();
+        return next(
+            createError(
+                "Validation error occurred",
+                StatusCodes.BAD_REQUEST,
+                validation.errorDetails
+            )
+        );
     }
+    next();
 };
